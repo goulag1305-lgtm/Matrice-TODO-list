@@ -132,12 +132,7 @@ function save() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
-function getPriority(date) {
-  const today = new Date();
-  const d = new Date(date);
-  return d - today;
-}
-
+/* ✅ TRI CORRIGÉ */
 function render() {
 
   document.querySelectorAll(".quadrant").forEach(q => {
@@ -147,14 +142,25 @@ function render() {
 
   document.getElementById("archiveList").innerHTML = "";
 
-  // ⏱ TRI PAR DATE (urgent en premier)
   const sorted = [...tasks].sort((a, b) => {
+
+    // ✔ archives à la fin
     if (a.done && !b.done) return 1;
     if (!a.done && b.done) return -1;
-    return getPriority(a.deadline) - getPriority(b.deadline);
+
+    const dateA = a.deadline ? new Date(a.deadline) : null;
+    const dateB = b.deadline ? new Date(b.deadline) : null;
+
+    // ✔ sans date = après
+    if (!dateA && dateB) return 1;
+    if (dateA && !dateB) return -1;
+    if (!dateA && !dateB) return 0;
+
+    // ✔ plus proche en premier
+    return dateA - dateB;
   });
 
-  sorted.forEach((task, index) => {
+  sorted.forEach((task) => {
 
     if (task.done) {
       const a = document.createElement("div");
@@ -190,26 +196,26 @@ function render() {
       </div>
     `;
 
-    // ✔ TERMINÉ
+    // ✔ done
     div.querySelector(".check").onclick = () => {
       task.done = true;
       save();
       render();
     };
 
-    // ✏ EDIT
+    // ✏ edit
     div.querySelector(".edit").onclick = () => {
       const newText = prompt("Modifier :", task.text);
       if (newText) task.text = newText;
 
       const newDate = prompt("Date (YYYY-MM-DD) :", task.deadline);
-      if (newDate) task.deadline = newDate;
+      if (newDate !== null) task.deadline = newDate;
 
       save();
       render();
     };
 
-    // 🗑 DELETE
+    // 🗑 delete
     div.querySelector(".delete").onclick = () => {
       tasks = tasks.filter(t => t !== task);
       save();
