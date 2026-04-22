@@ -20,8 +20,8 @@ h1 { margin: 20px; }
 .form {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
   flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
 input, button {
@@ -41,8 +41,8 @@ button {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   width: 90%;
-  height: 65vh;
-  gap: 12px;
+  height: 60vh;
+  gap: 10px;
 }
 
 .quadrant {
@@ -60,15 +60,12 @@ button {
   background: white;
   color: black;
   padding: 10px;
-  border-radius: 8px;
   margin-top: 8px;
-  cursor: grab;
+  border-radius: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-
-.task:hover { transform: scale(1.02); }
 
 .actions {
   display: flex;
@@ -76,8 +73,10 @@ button {
 }
 
 .actions button {
-  padding: 4px 6px;
+  padding: 5px;
   font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 /* ARCHIVE */
@@ -90,15 +89,13 @@ button {
 }
 
 .archive-task {
+  display: flex;
+  justify-content: space-between;
   background: #444;
   padding: 8px;
   margin-top: 5px;
   border-radius: 6px;
-  display: flex;
-  justify-content: space-between;
 }
-
-h2 { margin-top: 0; }
 </style>
 </head>
 
@@ -107,7 +104,8 @@ h2 { margin-top: 0; }
 <h1>Matrice d'Eisenhower</h1>
 
 <div class="form">
-  <input type="text" id="taskInput" placeholder="Nouvelle tâche">
+  <input type="text" id="taskInput" placeholder="Tâche">
+  <input type="date" id="deadline">
 
   <label><input type="checkbox" id="important"> Important</label>
   <label><input type="checkbox" id="urgent"> Urgent</label>
@@ -134,6 +132,12 @@ function save() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
+function getPriority(date) {
+  const today = new Date();
+  const d = new Date(date);
+  return d - today;
+}
+
 function render() {
 
   document.querySelectorAll(".quadrant").forEach(q => {
@@ -143,19 +147,25 @@ function render() {
 
   document.getElementById("archiveList").innerHTML = "";
 
-  tasks.forEach((task, index) => {
+  // ⏱ TRI PAR DATE (urgent en premier)
+  const sorted = [...tasks].sort((a, b) => {
+    if (a.done && !b.done) return 1;
+    if (!a.done && b.done) return -1;
+    return getPriority(a.deadline) - getPriority(b.deadline);
+  });
 
-    // 🔴 ARCHIVE
+  sorted.forEach((task, index) => {
+
     if (task.done) {
       const a = document.createElement("div");
       a.className = "archive-task";
       a.innerHTML = `
-        <span>✔️ ${task.text}</span>
+        <span>✔ ${task.text}</span>
         <button>↩</button>
       `;
 
       a.querySelector("button").onclick = () => {
-        tasks[index].done = false;
+        task.done = false;
         save();
         render();
       };
@@ -164,34 +174,47 @@ function render() {
       return;
     }
 
-    // 🟢 ACTIF
     const div = document.createElement("div");
     div.className = "task";
-    div.draggable = true;
 
     div.innerHTML = `
-      <span>${task.text}</span>
+      <span>
+        ${task.text}
+        <small>(${task.deadline || "sans date"})</small>
+      </span>
+
       <div class="actions">
-        <button>✔</button>
+        <button class="check">✔</button>
+        <button class="edit">✏</button>
+        <button class="delete">🗑</button>
       </div>
     `;
 
-    // CHECK → archive
-    div.querySelector("button").onclick = () => {
-      tasks[index].done = true;
+    // ✔ TERMINÉ
+    div.querySelector(".check").onclick = () => {
+      task.done = true;
       save();
       render();
     };
 
-    // drag
-    div.addEventListener("dragstart", () => {
-      div.classList.add("dragging");
-      div.dataset.index = index;
-    });
+    // ✏ EDIT
+    div.querySelector(".edit").onclick = () => {
+      const newText = prompt("Modifier :", task.text);
+      if (newText) task.text = newText;
 
-    div.addEventListener("dragend", () => {
-      div.classList.remove("dragging");
-    });
+      const newDate = prompt("Date (YYYY-MM-DD) :", task.deadline);
+      if (newDate) task.deadline = newDate;
+
+      save();
+      render();
+    };
+
+    // 🗑 DELETE
+    div.querySelector(".delete").onclick = () => {
+      tasks = tasks.filter(t => t !== task);
+      save();
+      render();
+    };
 
     document.getElementById(task.quadrant).appendChild(div);
   });
@@ -199,6 +222,7 @@ function render() {
 
 function addTask() {
   const text = document.getElementById("taskInput").value;
+  const deadline = document.getElementById("deadline").value;
   const important = document.getElementById("important").checked;
   const urgent = document.getElementById("urgent").checked;
 
@@ -213,6 +237,7 @@ function addTask() {
 
   tasks.push({
     text,
+    deadline,
     quadrant,
     done: false
   });
@@ -222,20 +247,6 @@ function addTask() {
 
   document.getElementById("taskInput").value = "";
 }
-
-document.querySelectorAll(".quadrant").forEach(q => {
-  q.addEventListener("dragover", e => e.preventDefault());
-
-  q.addEventListener("drop", e => {
-    const dragged = document.querySelector(".dragging");
-    const index = dragged.dataset.index;
-
-    tasks[index].quadrant = q.id;
-
-    save();
-    render();
-  });
-});
 
 render();
 </script>
