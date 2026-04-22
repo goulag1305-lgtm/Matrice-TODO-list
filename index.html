@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Matrice d'Eisenhower</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 20px;
+    }
+
+    .form {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      width: 200px;
+    }
+
+    button {
+      padding: 10px 15px;
+      cursor: pointer;
+      border: none;
+      background: #333;
+      color: white;
+      border-radius: 5px;
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      width: 90%;
+      height: 70vh;
+      gap: 10px;
+    }
+
+    .quadrant {
+      padding: 15px;
+      border-radius: 10px;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    #q1 { background: #ffb3b3; } /* urgent important */
+    #q2 { background: #fff0b3; } /* important pas urgent */
+    #q3 { background: #ffd9b3; } /* urgent pas important */
+    #q4 { background: #e0e0e0; } /* inutile */
+
+    .quadrant h2 {
+      margin-top: 0;
+    }
+
+    .task {
+      background: white;
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .task:hover {
+      transform: scale(1.03);
+      background: #f0f0f0;
+    }
+
+    /* Placement (important ↑, urgent →) */
+    #q2 { grid-column: 1; grid-row: 1; }
+    #q1 { grid-column: 2; grid-row: 1; }
+    #q4 { grid-column: 1; grid-row: 2; }
+    #q3 { grid-column: 2; grid-row: 2; }
+
+  </style>
+</head>
+
+<body>
+
+  <h1>Matrice d'Eisenhower</h1>
+
+  <div class="form">
+    <input type="text" id="taskInput" placeholder="Nouvelle tâche...">
+
+    <label>
+      <input type="checkbox" id="important"> Important
+    </label>
+
+    <label>
+      <input type="checkbox" id="urgent"> Urgent
+    </label>
+
+    <button onclick="addTask()">Ajouter</button>
+  </div>
+
+  <div class="matrix">
+    <div class="quadrant" id="q2">
+      <h2>🟡 Important / Pas urgent</h2>
+    </div>
+
+    <div class="quadrant" id="q1">
+      <h2>🔴 Important / Urgent</h2>
+    </div>
+
+    <div class="quadrant" id="q4">
+      <h2>⚫ Pas important / Pas urgent</h2>
+    </div>
+
+    <div class="quadrant" id="q3">
+      <h2>🟠 Pas important / Urgent</h2>
+    </div>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    function saveTasks() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+      document.querySelectorAll(".quadrant").forEach(q => {
+        q.innerHTML = q.querySelector("h2").outerHTML;
+      });
+
+      tasks.forEach((task, index) => {
+        const div = document.createElement("div");
+        div.className = "task";
+        div.innerText = task.text;
+
+        div.onclick = () => {
+          tasks.splice(index, 1);
+          saveTasks();
+          renderTasks();
+        };
+
+        document.getElementById(task.quadrant).appendChild(div);
+      });
+    }
+
+    function addTask() {
+      const text = document.getElementById("taskInput").value;
+      const important = document.getElementById("important").checked;
+      const urgent = document.getElementById("urgent").checked;
+
+      if (!text) return;
+
+      let quadrant;
+
+      if (important && urgent) quadrant = "q1";
+      else if (important && !urgent) quadrant = "q2";
+      else if (!important && urgent) quadrant = "q3";
+      else quadrant = "q4";
+
+      tasks.push({ text, quadrant });
+
+      saveTasks();
+      renderTasks();
+
+      document.getElementById("taskInput").value = "";
+      document.getElementById("important").checked = false;
+      document.getElementById("urgent").checked = false;
+    }
+
+    renderTasks();
+  </script>
+
+</body>
+</html>
